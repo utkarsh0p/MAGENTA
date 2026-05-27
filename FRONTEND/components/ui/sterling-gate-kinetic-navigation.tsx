@@ -2,10 +2,18 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import gsap from "gsap";
 import { CustomEase } from "gsap/CustomEase";
-import { LogOut } from "lucide-react";
+import {
+  LogOut,
+  Menu,
+  MessageSquare,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Plus,
+  Search,
+} from "lucide-react";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(CustomEase);
@@ -18,16 +26,38 @@ interface CurrentUser {
   email?: string | null;
 }
 
+const NAV_ITEMS = [
+  {
+    href: "/",
+    label: "Chat",
+    icon: MessageSquare,
+  },
+  {
+    href: "/sessions",
+    label: "Search",
+    icon: Search,
+  },
+];
+
 export function KineticNavigation() {
   const pathname = usePathname();
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const hasOpenedRef = useRef(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const isActiveRoute = (href: string) => pathname === href;
-  const profileName = currentUser?.full_name || currentUser?.name || currentUser?.email || "Profile";
+
+  const profileName = useMemo(
+    () =>
+      currentUser?.full_name ||
+      currentUser?.name ||
+      currentUser?.email ||
+      "Workspace",
+    [currentUser],
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -40,9 +70,7 @@ export function KineticNavigation() {
 
         if (!response.ok) {
           if (isMounted) setCurrentUser(null);
-          if (response.status === 401) {
-            router.replace("/login");
-          }
+          if (response.status === 401) router.replace("/login");
           return;
         }
 
@@ -50,9 +78,7 @@ export function KineticNavigation() {
           | { user?: CurrentUser }
           | null;
 
-        if (isMounted) {
-          setCurrentUser(payload?.user ?? null);
-        }
+        if (isMounted) setCurrentUser(payload?.user ?? null);
       } catch {
         if (isMounted) setCurrentUser(null);
       }
@@ -65,23 +91,15 @@ export function KineticNavigation() {
     };
   }, [router]);
 
-  const handleLogout = async () => {
-    if (isLoggingOut) return;
+  useEffect(() => {
+    document.body.classList.add("app-rail-mounted");
+    document.body.classList.toggle("workspace-panel-open", isSidebarOpen);
 
-    setIsLoggingOut(true);
-    try {
-      await fetch("/api/auth/logout", {
-        method: "POST",
-        credentials: "include",
-      });
-    } finally {
-      setCurrentUser(null);
-      setIsMenuOpen(false);
-      setIsLoggingOut(false);
-      router.push("/login");
-      router.refresh();
-    }
-  };
+    return () => {
+      document.body.classList.remove("app-rail-mounted");
+      document.body.classList.remove("workspace-panel-open");
+    };
+  }, [isSidebarOpen]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -97,32 +115,6 @@ export function KineticNavigation() {
     }
 
     const ctx = gsap.context(() => {
-      const arrowLine = document.querySelector(".arrow-line");
-
-      if (arrowLine) {
-        const pathLength = (arrowLine as SVGPathElement).getTotalLength();
-
-        gsap.set(arrowLine, {
-          strokeDasharray: pathLength,
-          strokeDashoffset: pathLength,
-        });
-
-        const arrowTl = gsap.timeline({ repeat: -1, repeatDelay: 0.8 });
-        arrowTl
-          .to(arrowLine, {
-            strokeDashoffset: 0,
-            duration: 1,
-            ease: "power2.out",
-          })
-          .to({}, { duration: 1.2 })
-          .to(arrowLine, {
-            strokeDashoffset: -pathLength,
-            duration: 0.6,
-            ease: "power2.in",
-          })
-          .set(arrowLine, { strokeDashoffset: pathLength });
-      }
-
       const menuItems = containerRef.current!.querySelectorAll(
         ".menu-list-item[data-shape]",
       );
@@ -141,11 +133,9 @@ export function KineticNavigation() {
         const shapeEls = shape.querySelectorAll(".shape-element");
 
         const onEnter = () => {
-          if (shapesContainer) {
-            shapesContainer
-              .querySelectorAll(".bg-shape")
-              .forEach((s) => s.classList.remove("active"));
-          }
+          shapesContainer
+            ?.querySelectorAll(".bg-shape")
+            .forEach((shapeNode) => shapeNode.classList.remove("active"));
 
           shape.classList.add("active");
 
@@ -189,11 +179,10 @@ export function KineticNavigation() {
       ctx.revert();
 
       if (containerRef.current) {
-        const items = containerRef.current.querySelectorAll(
-          ".menu-list-item[data-shape]",
-        );
+        const menuItems =
+          containerRef.current.querySelectorAll(".menu-list-item[data-shape]");
 
-        items.forEach((item) =>
+        menuItems.forEach((item) =>
           (item as HTMLElement & { _cleanup?: () => void })._cleanup?.(),
         );
       }
@@ -213,17 +202,9 @@ export function KineticNavigation() {
       const menuItems = containerRef.current!.querySelectorAll(".menu-list-item");
       const fadeTargets =
         containerRef.current!.querySelectorAll("[data-menu-fade]");
-
-      const menuButton = containerRef.current!.querySelector(".nav-close-btn");
       const navWrapTarget = navWrap ? [navWrap] : [];
       const menuTarget = menu ? [menu] : [];
       const overlayTarget = overlay ? [overlay] : [];
-      const menuButtonTexts = menuButton
-        ? menuButton.querySelectorAll("p")
-        : [];
-      const menuButtonIcon = menuButton
-        ? [menuButton.querySelector(".menu-button-icon")].filter(Boolean)
-        : [];
 
       const tl = gsap.timeline();
 
@@ -234,8 +215,6 @@ export function KineticNavigation() {
 
         tl.set(navWrapTarget, { display: "block" })
           .fromTo(menuTarget, { x: "120%" }, { x: "0%" }, "<")
-          .fromTo(menuButtonTexts, { yPercent: 0 }, { yPercent: -100, stagger: 0.2 })
-          .fromTo(menuButtonIcon, { rotate: 0 }, { rotate: 315 }, "<")
           .fromTo(overlayTarget, { autoAlpha: 0 }, { autoAlpha: 1 }, "<")
           .fromTo(
             bgPanels,
@@ -270,31 +249,16 @@ export function KineticNavigation() {
           gsap.set(navWrapTarget, { display: "none" });
           gsap.set(menuTarget, { x: "120%" });
           gsap.set(overlayTarget, { autoAlpha: 0 });
-          gsap.set(menuButtonTexts, { yPercent: 0 });
-          gsap.set(menuButtonIcon, { rotate: 0 });
           return;
         }
 
         tl.to(overlayTarget, { autoAlpha: 0 })
           .to(menuTarget, { x: "120%" }, "<")
-          .to(menuButtonTexts, { yPercent: 0 }, "<")
-          .to(menuButtonIcon, { rotate: 0 }, "<")
           .set(navWrapTarget, { display: "none" });
       }
     }, containerRef);
 
     return () => ctx.revert();
-  }, [isMenuOpen]);
-
-  useEffect(() => {
-    const handleEsc = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && isMenuOpen) {
-        setIsMenuOpen(false);
-      }
-    };
-
-    window.addEventListener("keydown", handleEsc);
-    return () => window.removeEventListener("keydown", handleEsc);
   }, [isMenuOpen]);
 
   useEffect(() => {
@@ -309,71 +273,126 @@ export function KineticNavigation() {
     };
   }, [isMenuOpen]);
 
-  const toggleMenu = () => setIsMenuOpen((prev) => !prev);
+  useEffect(() => {
+    const handleEsc = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsMenuOpen(false);
+    };
+
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, []);
+
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
+
+    setIsLoggingOut(true);
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+    } finally {
+      setCurrentUser(null);
+      setIsMenuOpen(false);
+      setIsLoggingOut(false);
+      router.push("/login");
+      router.refresh();
+    }
+  };
+
   const closeMenu = () => setIsMenuOpen(false);
 
   return (
     <div ref={containerRef}>
-      <div className="site-header-wrapper">
-        <header className="header">
-          <div className="container is--full">
-            <nav className="nav-row">
-              <Link href="/" aria-label="home" className="nav-logo-row w-inline-block">
-                <span className="nav-logo-text p-large">HumanTouch</span>
-              </Link>
-
-              <div className="nav-row__right">
-                <button
-                  type="button"
-                  className="nav-close-btn"
-                  onClick={toggleMenu}
-                  aria-label={isMenuOpen ? "Close navigation menu" : "Open navigation menu"}
-                  aria-expanded={isMenuOpen}
-                  aria-controls="kinetic-navigation-menu"
-                >
-                  <span className="menu-button-text">
-                    <p className="p-large">Menu</p>
-                    <p className="p-large">Close</p>
-                  </span>
-                  <span className="icon-wrap" aria-hidden="true">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="100%"
-                      viewBox="0 0 16 16"
-                      fill="none"
-                      className="menu-button-icon"
-                    >
-                      <path
-                        d="M7.33333 16L7.33333 -3.2055e-07L8.66667 -3.78832e-07L8.66667 16L7.33333 16Z"
-                        fill="currentColor"
-                      />
-                      <path
-                        d="M16 8.66667L-2.62269e-07 8.66667L-3.78832e-07 7.33333L16 7.33333L16 8.66667Z"
-                        fill="currentColor"
-                      />
-                      <path
-                        d="M6 7.33333L7.33333 7.33333L7.33333 6C7.33333 6.73637 6.73638 7.33333 6 7.33333Z"
-                        fill="currentColor"
-                      />
-                      <path
-                        d="M10 7.33333L8.66667 7.33333L8.66667 6C8.66667 6.73638 9.26362 7.33333 10 7.33333Z"
-                        fill="currentColor"
-                      />
-                      <path
-                        d="M6 8.66667L7.33333 8.66667L7.33333 10C7.33333 9.26362 6.73638 8.66667 6 8.66667Z"
-                        fill="currentColor"
-                      />
-                      <path
-                        d="M10 8.66667L8.66667 8.66667L8.66667 10C8.66667 9.26362 9.26362 8.66667 10 8.66667Z"
-                        fill="currentColor"
-                      />
-                    </svg>
-                  </span>
-                </button>
-              </div>
-            </nav>
+      <aside
+        id="workspace-sidebar"
+        className="workspace-sidebar"
+        data-open={isSidebarOpen}
+        aria-label="Workspace sidebar"
+      >
+        <div className="workspace-sidebar__top">
+          <div className="workspace-sidebar__brand">
+            <Link href="/" className="workspace-sidebar__logo" aria-label="HumanTouch home">
+              HumanTouch
+            </Link>
+            <button
+              type="button"
+              className="workspace-sidebar__icon-button"
+              onClick={() => setIsSidebarOpen((value) => !value)}
+              aria-label={isSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+              aria-expanded={isSidebarOpen}
+              aria-controls="workspace-sidebar"
+              title={isSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+            >
+              {isSidebarOpen ? (
+                <PanelLeftClose aria-hidden="true" />
+              ) : (
+                <PanelLeftOpen aria-hidden="true" />
+              )}
+            </button>
           </div>
-        </header>
+
+          <nav className="workspace-sidebar__nav" aria-label="Primary workspace">
+            <button
+              type="button"
+              className="workspace-sidebar__item"
+              onClick={() => router.push("/")}
+              title="New chat"
+            >
+              <span className="workspace-sidebar__item-icon is-filled">
+                <Plus aria-hidden="true" />
+              </span>
+              <span className="workspace-sidebar__item-label">New chat</span>
+            </button>
+
+            {NAV_ITEMS.map((item) => {
+              const Icon = item.icon;
+              const isActive = pathname === item.href;
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="workspace-sidebar__item"
+                  data-active={isActive}
+                  aria-current={isActive ? "page" : undefined}
+                  title={item.label}
+                >
+                  <span className="workspace-sidebar__item-icon">
+                    <Icon aria-hidden="true" />
+                  </span>
+                  <span className="workspace-sidebar__item-label">{item.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
+
+        <div className="workspace-sidebar__bottom">
+          <div className="workspace-sidebar__avatar" title={profileName}>
+            {(profileName || "HT").slice(0, 2).toUpperCase()}
+          </div>
+          <div className="workspace-sidebar__profile">
+            <span className="workspace-sidebar__profile-name">{profileName}</span>
+            <span className="workspace-sidebar__profile-email">
+              {currentUser?.email ?? "HumanTouch"}
+            </span>
+          </div>
+        </div>
+      </aside>
+
+      <div className="app-menu">
+        <button
+          type="button"
+          className="app-menu__button"
+          onClick={() => setIsMenuOpen((value) => !value)}
+          aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+          aria-expanded={isMenuOpen}
+          aria-controls="app-menu-panel"
+        >
+          <span>{isMenuOpen ? "Close" : "Menu"}</span>
+          <Menu aria-hidden="true" />
+        </button>
       </div>
 
       <section className="fullscreen-menu-container">
@@ -530,7 +549,7 @@ export function KineticNavigation() {
                         title="Log out"
                       >
                         <LogOut className="menu-logout-icon" aria-hidden="true" />
-                        <span>Logout</span>
+                        <span>{isLoggingOut ? "Logging out" : "Logout"}</span>
                       </button>
                     </div>
                   </li>
@@ -545,5 +564,5 @@ export function KineticNavigation() {
 }
 
 export function Component() {
-  return <main className="kinetic-navigation" />;
+  return <KineticNavigation />;
 }

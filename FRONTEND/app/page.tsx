@@ -87,7 +87,7 @@ export default function Home() {
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const threadIdRef = useRef(`web-${crypto.randomUUID()}`);
   const messagesScrollRef = useRef<HTMLDivElement>(null);
-  const greeting = useMemo(() => getGreeting(), []);
+  const greeting = useMemo(() => `${getGreeting()}, ready when you are`, []);
   const hasMessages = messages.length > 0;
 
   useEffect(() => {
@@ -281,29 +281,40 @@ export default function Home() {
   };
 
   return (
-    <main className="h-screen overflow-hidden bg-accent pt-16 text-text-100">
-      <div className="pointer-events-none fixed inset-y-0 left-1/2 w-full max-w-2xl -translate-x-1/2 bg-bg-0" />
+    <main className="chat-page h-dvh overflow-hidden bg-bg-0 text-text-100">
       <div
-        className={`relative z-10 mx-auto flex h-full min-h-0 w-full max-w-5xl flex-col px-4 sm:px-6 lg:px-8 ${
+        className={`chat-page-content relative z-10 mx-auto flex h-full min-h-0 w-full max-w-6xl flex-col bg-bg-0 px-4 sm:px-6 lg:px-8 ${
           hasMessages ? "pb-0" : "pb-8"
         }`}
       >
         <section
           className={`flex min-h-0 flex-1 flex-col gap-8 ${
-            hasMessages ? "justify-start" : "justify-start pt-[calc(50vh-13rem)]"
+            hasMessages ? "justify-start" : "justify-center"
           }`}
         >
           {!hasMessages && (
-            <div className="mx-auto w-full max-w-2xl text-center">
-              <h1 className="text-3xl font-semibold tracking-normal text-text-100 sm:text-4xl">
-                {greeting}
-              </h1>
+            <div className="mx-auto flex w-full max-w-5xl flex-col items-center gap-8">
+              <div className="w-full max-w-3xl text-center">
+                <h1 className="flex items-center justify-center gap-4 text-3xl font-medium tracking-normal text-text-300 sm:text-5xl">
+                  <span className="text-4xl leading-none text-accent sm:text-5xl" aria-hidden="true">
+                    *
+                  </span>
+                  <span>{greeting}</span>
+                </h1>
+              </div>
+
+              <div className="w-full">
+                <ClaudeChatInput
+                  onSendMessage={handleSendMessage}
+                  disabled={isStreaming}
+                  draftMessage={draftMessage}
+                />
+              </div>
             </div>
           )}
 
           {hasMessages && (
-            <div className="relative mx-auto min-h-0 w-full max-w-2xl flex-1 overflow-hidden bg-bg-0">
-              <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-8 bg-gradient-to-b from-bg-0/80 to-transparent" />
+            <div className="relative mx-auto min-h-0 w-full max-w-2xl flex-1 overflow-hidden">
               <div
                 ref={messagesScrollRef}
                 className="scrollbar-hide flex h-full w-full flex-col gap-5 overflow-y-auto px-6 pb-56 pt-8"
@@ -344,7 +355,7 @@ export default function Home() {
                           </time>
                           <button
                             type="button"
-                            className="inline-flex h-4 w-4 items-center justify-center rounded text-text-500 transition-colors hover:text-white"
+                            className="inline-flex h-4 w-4 items-center justify-center rounded text-text-500 transition-colors hover:text-text-100"
                             onClick={() => editMessage(message.content)}
                             aria-label="Edit message"
                             title="Edit"
@@ -353,7 +364,7 @@ export default function Home() {
                           </button>
                           <button
                             type="button"
-                            className="inline-flex h-4 w-4 items-center justify-center rounded text-text-500 transition-colors hover:text-white"
+                            className="inline-flex h-4 w-4 items-center justify-center rounded text-text-500 transition-colors hover:text-text-100"
                             onClick={() => copyMessage(message)}
                             aria-label="Copy message"
                             title="Copy"
@@ -370,8 +381,8 @@ export default function Home() {
                           type="button"
                           className={`inline-flex h-6 w-6 items-center justify-center rounded-lg transition-colors ${
                             copiedMessageId === message.id
-                              ? "bg-bg-200 text-white"
-                              : "text-text-500 hover:text-white"
+                              ? "bg-bg-200 text-text-100"
+                              : "text-text-500 hover:text-text-100"
                           }`}
                           onClick={() => copyMessage(message)}
                           aria-label="Copy response"
@@ -392,7 +403,7 @@ export default function Home() {
           )}
 
           {error && (
-            <p className="mx-auto max-w-2xl text-center text-sm text-red-600">
+            <p className="mx-auto max-w-2xl text-center text-sm text-red-400">
               {error}
             </p>
           )}
@@ -400,21 +411,17 @@ export default function Home() {
         </section>
       </div>
 
-      <div
-        className={`fixed inset-x-0 z-20 bg-transparent transition-[bottom,box-shadow] duration-500 ease-[var(--ease-silk)] ${
-          hasMessages
-            ? "bottom-0 shadow-none"
-            : "bottom-[calc(50vh-3.7rem)] shadow-none"
-        }`}
-      >
-        <div className="mx-auto w-full max-w-5xl px-4 pb-4 pt-3 sm:px-6 lg:px-8">
-          <ClaudeChatInput
-            onSendMessage={handleSendMessage}
-            disabled={isStreaming}
-            draftMessage={draftMessage}
-          />
+      {hasMessages && (
+        <div className="chat-input-dock fixed inset-x-0 bottom-0 z-20 bg-transparent shadow-none transition-[box-shadow] duration-500 ease-[var(--ease-silk)]">
+          <div className="chat-input-inner mx-auto w-full max-w-5xl bg-transparent px-4 pb-4 pt-3 sm:px-6 lg:px-8">
+            <ClaudeChatInput
+              onSendMessage={handleSendMessage}
+              disabled={isStreaming}
+              draftMessage={draftMessage}
+            />
+          </div>
         </div>
-      </div>
+      )}
     </main>
   );
 }

@@ -4,9 +4,11 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Archive,
   ArrowUp,
+  ChevronDown,
   FileText,
   Loader2,
   Plus,
+  SlidersHorizontal,
   X,
 } from "lucide-react";
 
@@ -17,6 +19,8 @@ export const Icons = {
   FileText,
   Loader2,
   Archive,
+  ChevronDown,
+  SlidersHorizontal,
 };
 
 const formatFileSize = (bytes: number) => {
@@ -90,7 +94,7 @@ const FilePreviewCard: React.FC<FilePreviewCardProps> = ({ file, onRemove }) => 
       <button
         type="button"
         onClick={() => onRemove(file.id)}
-        className="absolute top-1 right-1 p-1 bg-accent/80 hover:bg-accent rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+        className="absolute top-1 right-1 p-1 bg-accent/80 hover:bg-accent rounded-full text-bg-0 opacity-0 group-hover:opacity-100 transition-opacity"
         aria-label={`Remove ${file.file.name}`}
       >
         <Icons.X className="w-3 h-3" />
@@ -132,7 +136,7 @@ const PastedContentCard: React.FC<PastedContentCardProps> = ({
     <button
       type="button"
       onClick={() => onRemove(content.id)}
-      className="absolute top-2 right-2 p-[3px] bg-bg-0 border border-bg-300 rounded-full text-text-300 hover:text-white transition-colors shadow-sm opacity-0 group-hover:opacity-100"
+      className="absolute top-2 right-2 p-[3px] bg-bg-0 border border-bg-300 rounded-full text-text-300 hover:text-text-100 transition-colors shadow-sm opacity-0 group-hover:opacity-100"
       aria-label="Remove pasted content"
     >
       <Icons.X className="w-2 h-2" />
@@ -310,13 +314,13 @@ export const ClaudeChatInput: React.FC<ClaudeChatInputProps> = ({
 
   return (
     <div
-      className="relative w-full max-w-2xl mx-auto transition-all duration-300 font-sans"
+      className="relative w-full max-w-[48rem] mx-auto transition-all duration-300 font-sans"
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
     >
-      <div className="!box-content flex flex-col mx-2 md:mx-0 items-stretch transition-all duration-200 relative z-10 rounded-2xl cursor-text border border-accent shadow-input hover:shadow-input-hover focus-within:shadow-input-focus bg-bg-100 font-sans antialiased">
-        <div className="flex flex-col px-3 pt-3 pb-2 gap-1">
+      <div className="!box-content flex min-h-[7.25rem] flex-col mx-2 md:mx-0 items-stretch transition-all duration-200 relative z-10 rounded-2xl cursor-text border border-bg-300 bg-bg-200 shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--text-100)_4%,transparent)] hover:border-text-500 focus-within:border-text-400 font-sans antialiased">
+        <div className="flex min-h-[7.25rem] flex-col px-5 py-4 gap-1">
           {(files.length > 0 || pastedContent.length > 0) && (
             <div className="flex gap-3 overflow-x-auto custom-scrollbar pb-2 px-1">
               {pastedContent.map((content) => (
@@ -345,16 +349,16 @@ export const ClaudeChatInput: React.FC<ClaudeChatInputProps> = ({
           )}
 
           <div className="relative">
-            <div className="w-full overflow-hidden font-sans break-words transition-opacity duration-200 min-h-8 pl-1">
+            <div className="w-full overflow-hidden font-sans break-words transition-opacity duration-200 min-h-11">
               <textarea
                 ref={textareaRef}
                 value={message}
                 onChange={(event) => setMessage(event.target.value)}
                 onPaste={handlePaste}
                 onKeyDown={handleKeyDown}
-                placeholder="Message the current agent"
+                placeholder="How can I help you today?"
                 disabled={disabled}
-                className="w-full bg-transparent border-0 outline-none text-text-100 text-[16px] placeholder:text-text-400 resize-none overflow-hidden py-0 leading-relaxed block font-normal antialiased"
+                className="w-full bg-transparent border-0 outline-none text-text-100 text-[1.05rem] placeholder:text-text-500 resize-none overflow-hidden py-0 leading-relaxed block font-normal antialiased"
                 rows={1}
                 autoFocus
                 style={{ minHeight: "1.35em" }}
@@ -362,12 +366,12 @@ export const ClaudeChatInput: React.FC<ClaudeChatInputProps> = ({
             </div>
           </div>
 
-          <div className="flex gap-2 w-full items-center">
+          <div className="mt-auto flex gap-2 w-full items-end">
             <div className="relative flex-1 flex items-center shrink min-w-0 gap-1">
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={disabled}
-                className="inline-flex items-center justify-center relative shrink-0 transition-colors duration-200 h-8 w-8 rounded-lg active:scale-95 text-text-400 hover:text-text-200 hover:bg-bg-200"
+                className="inline-flex items-center justify-center relative shrink-0 transition-colors duration-200 h-9 w-9 rounded-lg active:scale-95 text-text-400 hover:text-text-100 hover:bg-bg-300"
                 type="button"
                 aria-label="Attach file"
               >
@@ -375,14 +379,29 @@ export const ClaudeChatInput: React.FC<ClaudeChatInputProps> = ({
               </button>
             </div>
 
-            <div className="flex flex-row items-center min-w-0 gap-1">
+            <div className="flex flex-row items-center min-w-0 gap-3 text-text-400">
+              <button
+                type="button"
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg px-2 text-base font-medium transition-colors hover:bg-bg-300 hover:text-text-100"
+                aria-label="Current agent"
+              >
+                <span>Admin</span>
+                <Icons.ChevronDown className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-lg transition-colors hover:bg-bg-300 hover:text-text-100"
+                aria-label="Input settings"
+              >
+                <Icons.SlidersHorizontal className="h-5 w-5" />
+              </button>
               <button
                 onClick={handleSend}
                 disabled={!hasContent || disabled}
-                className={`inline-flex items-center justify-center relative shrink-0 transition-colors h-8 w-8 rounded-xl active:scale-95 ${
+                className={`inline-flex items-center justify-center relative shrink-0 transition-colors h-9 w-9 rounded-xl active:scale-95 ${
                   hasContent && !disabled
                     ? "bg-accent text-bg-0 hover:bg-accent-hover shadow-md"
-                    : "bg-accent/30 text-bg-0/60 cursor-default"
+                    : "hidden"
                 }`}
                 type="button"
                 aria-label="Send message"
@@ -413,7 +432,7 @@ export const ClaudeChatInput: React.FC<ClaudeChatInputProps> = ({
         }}
       />
 
-      <div className="text-center mt-4">
+      <div className="hidden text-center mt-4">
         <p className="text-xs text-text-500">
           AI can make mistakes. Check important information.
         </p>
