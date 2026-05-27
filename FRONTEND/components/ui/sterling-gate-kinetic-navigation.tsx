@@ -368,17 +368,6 @@ export function KineticNavigation() {
           </nav>
         </div>
 
-        <div className="workspace-sidebar__bottom">
-          <div className="workspace-sidebar__avatar" title={profileName}>
-            {(profileName || "HT").slice(0, 2).toUpperCase()}
-          </div>
-          <div className="workspace-sidebar__profile">
-            <span className="workspace-sidebar__profile-name">{profileName}</span>
-            <span className="workspace-sidebar__profile-email">
-              {currentUser?.email ?? "HumanTouch"}
-            </span>
-          </div>
-        </div>
       </aside>
 
       <div className="app-menu">
