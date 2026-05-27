@@ -1,0 +1,51 @@
+# dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+
+# production
+dist/
+build/
+
+# local env files
+.env*
+!.env.example
+
+# logs and diagnostics
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.playwright-mcp/
+
+# Playwright output
+playwright-report/
+blob-report/
+test-results/
+screenshots/
+.playwright/
+playwright/.cache/
+page-*.png
+screenshot*.png
+*-screenshot.png
+test-results/**/*.png
+test-results/**/*.webm
+test-results/**/*.zip
+test-results/**/*.har
+test-results/**/*.trace
+playwright-report/**/*.zip
+
+# TypeScript
+*.tsbuildinfo
+
+# Coverage
+coverage/
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~

@@ -1,0 +1,30 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+npm-debug.log*
+
+# Playwright and browser automation output
+.playwright-mcp/
+playwright-report/
+blob-report/
+test-results/
+screenshots/
+.playwright/
+playwright/.cache/
+page-*.png
+screenshot*.png
+*-screenshot.png
+test-results/**/*.png
+test-results/**/*.webm
+test-results/**/*.zip
+test-results/**/*.har
+test-results/**/*.trace
+playwright-report/**/*.zip
+
+# TypeScript and local caches
+*.tsbuildinfo
+
+# Coverage
+coverage/

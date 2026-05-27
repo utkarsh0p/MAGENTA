@@ -1,0 +1,329 @@
+# Repository Guidelines
+
+## Project
+
+This project is `HumanTouch`.
+
+HumanTouch is a focused company agent management app where an admin can create,
+assign, and manage AI agents for employees.
+
+The longer-term goal is to make this agent system integration-ready so it can
+attach to a larger existing business application and reuse that application's
+backend, users, roles, and PostgreSQL data model.
+
+This repository contains two sibling workspaces:
+
+- `BACKEND/`: Fastify + TypeScript backend for HumanTouch APIs and chat runtime.
+- `FRONTEND/`: Next.js + Tailwind frontend for the HumanTouch app UI.
+
+Backend source lives in `BACKEND/src/`, with chat workflow code under
+`BACKEND/src/workflows/chat/` when that structure exists. Frontend app routes
+live in `FRONTEND/app/`, and shared UI components live in
+`FRONTEND/components/`.
+
+Each workspace has its own `AGENTS.md`; read the relevant one before product or
+architecture changes.
+
+## Canonical Markdown Files
+
+These markdown files are part of the working project context, but they should be
+pulled in only when the task needs them.
+
+- `AGENTS.md`
+  Use for project guardrails, product direction, and repo-specific working
+  rules.
+- `BACKEND/AGENTS.md`
+  Use for backend API, runtime, persistence, auth, and integration decisions.
+- `BACKEND/ROUTES.md`
+  Use before adding, renaming, removing, or consuming backend routes.
+- `BACKEND/SCHEMA.md`
+  Use when the task touches database design, auth/access modeling, assignments,
+  sessions, prompt storage, message history, or LangGraph checkpoint boundaries.
+- `FRONTEND/AGENTS.md`
+  Use for frontend architecture, UX, state, and API-consumption decisions.
+- `FRONTEND/style/STYLES.md`
+  Use only for frontend visual work, typography, style direction, or UI
+  consistency questions.
+
+Do not load all markdown files into context by default. Use only the files
+relevant to the task at hand.
+
+## Build, Test, And Development Commands
+
+Run commands from the workspace they belong to.
+
+Backend:
+
+- `npm run dev`: start the Fastify server with `tsx watch`.
+- `npm run check`: run TypeScript without emitting files.
+- `npm run build`: compile backend TypeScript to `dist/`.
+- `npm start`: run the compiled backend from `dist/server.js`.
+
+Frontend:
+
+- `npm run dev`: start the Next.js development server.
+- `npm run build`: create a production Next.js build.
+- `npm start`: serve the production build.
+- `npm run lint`: run Next linting if supported by the installed Next version.
+
+## Current Product Scope
+
+The intended product model assumes:
+
+- one seeded demo company
+- one seeded admin user
+- one built-in `Admin` agent
+- admin-created custom agents
+- direct user assignment and role-based assignment
+- per-session employee `user_prompt`
+
+Admin users can:
+
+- create agents
+- edit agents
+- assign agents to employees or roles
+- access company agent/session data
+
+Normal employees should later:
+
+- log in
+- see only assigned agents
+- chat with those agents using their own session-level style prompt
+
+## Core Product Model
+
+The product should support:
+
+- real `companies` and `users` tables
+- one default `Admin` agent
+- multiple chat sessions/history
+- backend-persisted sessions
+- agent execution through LangGraph
+- future support for custom agents created by admin
+- generated/stored `system_prompt` per agent
+- per-session employee `user_prompt`
+
+The architecture should remain compatible with later parent-app integration for
+users, companies, roles, and PostgreSQL reuse.
+
+## Session Model
+
+Each chat is a session with its own `thread_id`.
+
+Requirements:
+
+- users can create multiple sessions
+- session history appears in the UI
+- session state is restored from the backend
+- LangGraph checkpointer is used for persistence
+- PostgreSQL is the initial persistence store
+- session storage should remain compatible with future foreign keys such as
+  `company_id`, `created_by_user_id`, and `agent_id`
+
+## Agent Model
+
+Current intended state:
+
+- one default `Admin` agent is seeded
+- admin can create additional agents
+- each agent stores structured `agent_info`
+- each agent stores a generated `system_prompt`
+- access is granted through role assignments and direct user assignments
+
+Future state:
+
+- employees only see agents assigned to them
+- agent prompt generation can become more sophisticated without changing the
+  runtime model
+- auth/login can move from dev auth to full production auth
+- the built-in `Admin` agent may later act as a coordinator that assigns work
+  to other company agents, gathers their outputs, and returns a consolidated
+  result to the human admin
+
+Design the data model so agent definitions remain separate from conversation
+history.
+
+Future orchestration direction:
+
+- keep human-to-agent chat as the initial UX
+- later support admin-to-admin-agent orchestration across multiple subordinate
+  agents
+- treat delegated multi-agent work as a separate orchestration or run model, not
+  as a replacement for normal chat sessions
+- keep permissions explicit so the coordinating `Admin` agent can only delegate
+  within the company's allowed agent set
+- preserve a clean separation between agent definitions, conversation history,
+  and future delegated work execution records
+
+## Expected UX
+
+Keep the first UI simple:
+
+- sidebar for sessions
+- main chat area
+- current agent indicator
+- room for future execution/progress state
+
+Provider/account UX:
+
+- keep HumanTouch login identity distinct from connected external provider
+  accounts
+- show the current HumanTouch user email near provider connection controls
+- show each connected provider account as
+  `Connected as <provider email/account id>`
+- use an on/off toggle pattern for provider connections
+- off/not connected starts the provider OAuth connect flow
+- on/connected disconnects the provider and clears stored tokens
+- do not imply that the HumanTouch login email must match Google, GitHub, or
+  other provider emails
+
+## Architecture Direction
+
+- frontend: Next.js + Tailwind CSS in `FRONTEND/`
+- backend: Node.js + TypeScript in `BACKEND/`
+- backend framework: Fastify
+- ORM for HumanTouch product tables: Prisma when database work is implemented
+- orchestration: LangGraph.js
+- model provider: Google Gemini via environment variable
+- persistence: PostgreSQL
+
+Integration direction:
+
+- build the backend so it can run either as a standalone service or be mounted
+  into a larger Node.js backend
+- keep agent tables logically isolated, ideally in a dedicated PostgreSQL schema
+- avoid creating a separate source of truth for users, employees, companies, or
+  roles
+- keep LangGraph checkpoint tables outside Prisma ownership
+
+## Backend Direction
+
+Keep the backend as a single Node.js service.
+
+- use Fastify for all backend APIs, not only LangGraph routes
+- keep LangGraph execution inside the same TypeScript backend
+- do not introduce a split backend architecture
+- use Server-Sent Events (SSE) for response streaming
+- use PostgreSQL for chat sessions/history and LangGraph checkpoint persistence
+- use Prisma migrations for HumanTouch product table changes once Prisma is
+  added to this rebuild
+- prefer a service/module structure that can later be reused inside a larger
+  backend
+- keep route contracts stable and simple
+- keep auth and authorization separated
+- keep company scoping explicit in backend queries
+- use request user context consistently
+- build LangGraph runtime state in backend services before graph execution
+- keep the main workflow as the single graph entrypoint, with admin and employee
+  behavior in separate subgraphs
+- register tools centrally and bind only each selected agent's allowed tools at
+  runtime
+- allow LLM tool recommendation only as a suggestion step; persist only
+  backend-validated tool IDs
+
+## Auth And Provider Integrations
+
+Keep app login auth separate from connected-account provider integrations.
+
+- HumanTouch auth identifies the app user and owns workspace access, agent
+  permissions, sessions, and company scoping
+- connected-account providers grant external tokens for tools and are owned by
+  the current HumanTouch user
+- Google login uses NextAuth in the frontend and only creates/restores the
+  HumanTouch user session when that integration exists
+- Google, GitHub, LinkedIn, and Meta in the provider menu are tool integrations,
+  not necessarily login methods
+- backend integration OAuth callbacks store encrypted provider tokens in
+  `connected_accounts`
+- provider accounts may use different emails/usernames than the HumanTouch user;
+  this is expected and allowed
+- frontend integration proxy routes must support both NextAuth users and local
+  `humantouch_session` cookie users when that bridge is implemented
+- root `.env` is the intended source of truth for auth/provider secrets;
+  `FRONTEND/.env.local` should only keep frontend-local values like
+  `NEXT_PUBLIC_API_BASE_URL`
+
+## Current Non-Goals
+
+Do not add these unless explicitly requested:
+
+- `shadcn/ui`
+- multi-provider model abstraction
+- MCP integrations
+- vector search / RAG
+- additional built-in agents beyond `Admin`
+- full multi-agent delegation workflows in the first release
+
+Also avoid these unless explicitly requested:
+
+- deep coupling to one company's existing proprietary schema before the
+  integration shape is known
+- background job systems
+- websocket infrastructure when SSE is sufficient
+- premature multi-tenant abstractions in the UI
+
+## Guardrails
+
+- no sensitive external action without approval
+- strict role-based access control
+- enforce tool access in backend code, not only through prompts
+- keep v1 small and extensible
+- design for future multi-agent expansion, but do not build all agents now
+- keep backend logic integration-friendly for a larger PostgreSQL-based app
+- avoid MongoDB-specific assumptions anywhere in the code or data model
+- prefer clear interfaces between API, persistence, and agent orchestration
+  layers
+
+## Immediate Build Assumption
+
+Unless changed, build around this assumption:
+
+- single-company product
+- CEO is the admin
+- seeded admin user exists in the database once persistence is implemented
+- one default `Admin` agent exists
+- Google Gemini is the only model provider for now
+- admin will later create and assign more agents
+- sessions and history are first-class features
+- PostgreSQL is the system of record
+- the architecture should be ready to later reuse parent-app users, roles, and
+  company data
+- a later phase may allow the `Admin` agent to break work into sub-tasks for
+  other agents and collect the results centrally
+
+## Coding Style And Naming Conventions
+
+Use TypeScript with strict types. Prefer small modules named after product
+concepts, such as `routes.ts`, `chatWorkflow.ts`, or page route directories.
+Keep backend route contracts explicit with stable IDs. Use Tailwind utilities
+for frontend styling and keep the UI operational and app-focused.
+
+Use two-space indentation and double quotes in TypeScript. Avoid broad
+abstractions until repeated behavior makes them necessary.
+
+## Testing Guidelines
+
+No dedicated test framework is currently configured. Before finishing code
+changes, run the relevant TypeScript/build checks:
+
+- Backend changes: `cd BACKEND && npm run check`
+- Frontend changes: `cd FRONTEND && npm run build`
+
+When tests are added, keep them close to the code they cover and use clear
+behavior-focused names, for example `chatWorkflow.test.ts`.
+
+## Commit And Pull Request Guidelines
+
+No reliable Git history is available in this checkout, so use concise,
+imperative commit messages, for example `Add chat stream validation`. Pull
+requests should include a summary, verification steps, linked issues when
+applicable, and screenshots for visible frontend changes.
+
+## Security And Configuration Tips
+
+Keep secrets in local environment files and never commit API keys or OAuth
+tokens. The backend currently requires `GEMINI_API_KEY`; optional configuration
+includes `PORT`, `HOST`, `GEMINI_MODEL`, and `ALLOWED_ORIGINS`.
+
+HumanTouch app authentication and external provider OAuth connections are
+separate concerns. Do not rely on prompts as the only access-control layer.
